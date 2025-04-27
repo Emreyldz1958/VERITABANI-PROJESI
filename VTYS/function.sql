@@ -1,0 +1,41 @@
+--SELECT * FROM BASVURU_SEKLI    ---------> 0 ise online 1 ise yüz yüze
+--SELECT * FROM BASVURU_TURU     ---------> 0 ise Faturasýz 1 ise Faturalý
+-- ONLÝNE + FATURALI = 100
+-- YÜZ YÜZE + FATURALI = 80
+-- ONLÝNE + FATURASIZ = 60
+-- YÜZ YÜZE + FATURASIZ = 40
+
+-- Bir abonenin baþvuru türü (Faturalý/Faturasýz) ve baþvuru þekli (Online/Yüz Yüze) verilerine göre baþvuru skoru belirleyen scaler fonksiyon.
+
+IF OBJECT_ID ('dbo.fncBasvuruSkoru') IS NOT NULL
+	BEGIN
+		DROP FUNCTION fncBasvuruSkoru
+	END
+GO
+
+CREATE FUNCTION fncBasvuruSkoru
+(
+@AboneTc varchar(20)
+)
+RETURNS INT
+AS
+BEGIN
+	DECLARE @SkorDegeri As INT
+	SELECT @SkorDegeri = 
+		CASE
+			WHEN BASVURU_SEKLI = 0 AND BASVURU_TIPI = 1 THEN 100
+			WHEN BASVURU_SEKLI = 1 AND BASVURU_TIPI = 1 THEN 80
+			WHEN BASVURU_SEKLI = 0 AND BASVURU_TIPI = 0 THEN 60
+			WHEN BASVURU_SEKLI = 1 AND BASVURU_TIPI = 0 THEN 40
+		END
+	FROM ABONE A
+	INNER JOIN ABONELIK_SOZLESMESI AB ON A.TC_KIMLIK_NO = AB.TC_KIMLIK_NO
+	INNER JOIN TARIFELER T ON AB.SOZLESME_NUMARASI = T.SOZLESME_NUMARASI
+	INNER JOIN BASVURU_SEKLI BS ON T.BASVURU_SEKLI_ID = BS.BASVURU_SEKLI_ID
+	INNER JOIN BASVURU_TURU BT ON T.BASVURU_ID = BT.BASVURU_ID
+	WHERE A.TC_KIMLIK_NO = @AboneTc
+	RETURN ISNULL(@SkorDegeri,0)
+END
+
+--SELECT dbo.fncBasvuruSkoru('34567890123') AS BasvuruSkoru
+--SELECT dbo.fncBasvuruSkoru('12345678903') AS BasvuruSkoru
